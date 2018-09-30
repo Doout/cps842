@@ -9,6 +9,7 @@ import (
 	"github.com/doout/cps842/pkg/document"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 // inv represents the playbook command
@@ -24,6 +25,7 @@ var test = &cobra.Command{
 		for {
 			fmt.Print("Enter text: ")
 			input, _ := reader.ReadString('\n')
+			input = strings.Trim(input, "\n")
 			if input == "ZZEND" {
 				break
 			}

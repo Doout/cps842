@@ -18,6 +18,14 @@
   version = "v1.7.1"
 
 [[projects]]
+  branch = "v2"
+  digest = "1:58d7f4317c36681240024fb07f3bab1f229c1ee43e566edd35c6e702b848525d"
+  name = "github.com/doout/prose"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5b89779418644cea5120ab79796283d4c2651685"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -176,7 +184,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fe3be90b72e3d862e4b1cc36669adf162db0004d7008793dbf7bf1538e88eb82"
+  digest = "1:abf0b0f1ea5706ed10d6eef597cde7d335982a8e182dfa5c739ff29b3848b8ae"
   name = "gonum.org/v1/gonum"
   packages = [
     "blas",
@@ -193,15 +201,7 @@
     "mat",
   ]
   pruneopts = "UT"
-  revision = "20644dbe1a24b75924cac09e625a63b43203528f"
-
-[[projects]]
-  branch = "v2"
-  digest = "1:ff398a1169e0ad11c0537c341fcbc9b4be7e34143886b34352ff1005d45b3ab4"
-  name = "gopkg.in/jdkato/prose.v2"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "767a23049b9e59ef675496a9406a1e456bc5ad6e"
+  revision = "5616fb91a07e8dcb238a45f53cad6c74d9ae58f9"
 
 [[projects]]
   digest = "1:85b60f4403e2aae0eee2ac2ba50e4124dea766b582c6ec0d94fb1335d9c0d16e"
@@ -227,10 +227,10 @@
   analyzer-version = 1
   input-imports = [
     "github.com/bclicn/color",
+    "github.com/doout/prose",
     "github.com/reiver/go-porterstemmer",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
-    "gopkg.in/jdkato/prose.v2",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

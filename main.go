@@ -3,12 +3,20 @@ package main
 import (
 	"fmt"
 	"github.com/doout/cps842/cmd"
-
 	"runtime"
+	"time"
 )
 
 func main() {
 	cmd.Execute()
+
+}
+
+func timeIt(fn func()) {
+	start := time.Now()
+	fn()
+	end := time.Now()
+	fmt.Println(end.Sub(start))
 }
 
 func PrintMemUsage() {

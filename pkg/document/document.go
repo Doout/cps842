@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bclicn/color"
-	"gopkg.in/jdkato/prose.v2"
+	"github.com/doout/prose"
 	"log"
 	"math"
 	"regexp"
@@ -58,19 +58,14 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 				panic(err)
 			}
 			t := GetToken(itemTemp, DocumentsItems...)
-			wordMap := countWord(t, tokenParsers...)
-			//use the above to get the location of the words
-			v := make(map[string][]int)
-			for word := range wordMap {
-				v[word] = GetAllIndex(itemTemp, word, DocumentsItems...)
-			}
+			wordMap, wordIndexs := countWord(t, tokenParsers...)
 			info := make(map[string]string, len(DocumentsItems))
 			for _, value := range DocumentsItems {
 				if v, ok := itemTemp[value]; ok {
 					info[value] = v
 				}
 			}
-			tcd := tokensChanData{id, wordMap, info, v}
+			tcd := tokensChanData{id, wordMap, info, wordIndexs}
 			tokensChan <- tcd
 		}()
 	}
@@ -93,37 +88,32 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 	return &d
 }
 
-func GetAllIndex(s map[string]string, word string, items ...string) []int {
-	output := []int{}
-	baseOffset := 32 - uint(math.Log2(float64(len(items))))
-	for index, item := range items {
-		offset := 0
-		subString := s[item]
-		find := strings.Index(subString, word)
-		for find != -1 {
-			output = append(output, (offset+find)|index<<baseOffset)
-			offset += find + len(word)
-			find = strings.Index(subString[offset:], word)
-		}
-	}
-	return output
+func getProseToken(data string) (*prose.Document, error) {
+	return prose.NewDocument(data,
+		prose.WithExtraction(false),
+		prose.WithTagging(false),
+		prose.WithSegmentation(false),
+		prose.WithTokenization(true))
 }
 
 func GetToken(s map[string]string, items ...string) []prose.Token {
 	var tokens []prose.Token
 	tokensThreadChan := make(chan []prose.Token, len(items))
-	for _, item := range items {
-		i := item
+	for i, item := range items {
+		tempItems := item
+		tempIndex := i
 		go func() {
-			doc, err := prose.NewDocument(s[i],
-				prose.WithExtraction(false),
-				prose.WithTagging(false),
-				prose.WithSegmentation(false),
-				prose.WithTokenization(true))
+			doc, err := getProseToken(s[tempItems])
 			if err != nil {
 				log.Fatal(err)
 			}
-			tokensThreadChan <- doc.Tokens()
+			baseOffset := 32 - uint(math.Log2(float64(len(items))))
+			tokens2 := make([]prose.Token, len(doc.Tokens()))
+			for index, v := range doc.Tokens() {
+				v.Index |= tempIndex << baseOffset
+				tokens2[index] = v
+			}
+			tokensThreadChan <- tokens2
 		}()
 	}
 
@@ -134,8 +124,13 @@ func GetToken(s map[string]string, items ...string) []prose.Token {
 	return tokens
 }
 
-func countWord(tokens []prose.Token, tokenParsers ...func(token string) string) map[string]int {
+/*
+Return the lists of words with the index of the word in the documnt
+This function does not find the index of the word itself but use token.Index
+*/
+func countWord(tokens []prose.Token, tokenParsers ...func(token string) string) (map[string]int, map[string][]int) {
 	li := make(map[string]int)
+	oc := make(map[string][]int)
 OUTER:
 	for _, token := range tokens {
 		word := token.Text
@@ -147,11 +142,13 @@ OUTER:
 		}
 		if _, ok := li[word]; ok {
 			li[word] += 1
+			oc[word] = append(oc[word], token.Index)
 		} else {
 			li[word] = 1
+			oc[word] = []int{token.Index}
 		}
 	}
-	return li
+	return li, oc
 }
 
 func (d *Documents) GetFristDocSum(word string) string {
@@ -172,6 +169,7 @@ func (d *Documents) GetFristDocSum(word string) string {
 		docId := sv[0]
 		l := item.DocumentInfo[docId].Location[0]
 		index, find := DecodeLocation(l, DocumentsItems...)
+
 		return getNextXToken(d.Info[docId][find], index, 10)
 	}
 	return ""

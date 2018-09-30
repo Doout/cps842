@@ -37,3 +37,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/bclicn/color"
+
+[[constraint]]
+  name = "github.com/doout/prose"
+  branch = "v2"
