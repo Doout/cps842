@@ -16,11 +16,10 @@ import (
 var test = &cobra.Command{
 	Use:   "test",
 	Short: "Test inverted index",
-	Long:  `Take a collection of documents and generate its inverted index.`,
+	Long:  `Take the posting file generate from invert and test it.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		doc := document.Documents{}
-		loadJsonFromFile(&doc, "./data/postings")
-		doc.GetFristDocSum("writable")
+		loadJsonFromFile(&doc, postingFile)
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			fmt.Print("Enter text: ")
@@ -29,11 +28,15 @@ var test = &cobra.Command{
 			if input == "ZZEND" {
 				break
 			}
-			fmt.Println(doc.GetFristDocSum(input))
+			fmt.Println(doc.GetFirstDocSum(input))
 		}
 
 	},
 }
+
+var (
+	postingFile string
+)
 
 func loadJsonFromFile(t interface{}, file string) {
 	dat, err := ioutil.ReadFile(file)
@@ -47,5 +50,6 @@ func loadJsonFromFile(t interface{}, file string) {
 
 func init() {
 	rootCmd.AddCommand(test)
-
+	test.Flags().StringVarP(&postingFile, "posting", "p", "", "The location of Posting File(required)")
+	test.MarkFlagRequired("posting")
 }

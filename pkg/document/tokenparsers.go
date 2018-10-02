@@ -12,7 +12,3 @@ func PorterStemmer(token string) string {
 func ToLower(token string) string {
 	return strings.ToLower(token)
 }
-
-func StopList(token string) string {
-	return port.StemString(token)
-}

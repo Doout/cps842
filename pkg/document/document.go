@@ -25,8 +25,8 @@ type Documents struct {
 func (doc *Documents) GetDictionarySort() []string {
 	li := make([]string, len(doc.TermFrequency))
 	index := 0
-	for key, _ := range doc.TermFrequency {
-		li[index] = key
+	for key, value := range doc.TermFrequency {
+		li[index] = fmt.Sprintf("%s, df:%d", key, len(value.DocumentInfo))
 		index++
 	}
 	sort.Strings(li)
@@ -151,7 +151,7 @@ OUTER:
 	return li, oc
 }
 
-func (d *Documents) GetFristDocSum(word string) string {
+func (d *Documents) GetFirstDocSum(word string) string {
 	word = strings.TrimSpace(word)
 	fmt.Println("Looking for ", word)
 	if item, ok := d.TermFrequency[word]; ok {

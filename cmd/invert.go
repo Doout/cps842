@@ -18,6 +18,7 @@ var (
 	outputFolder = ""
 	re           = regexp.MustCompile(`(?m)^\.[A-Z]($| \d*$)`)
 	stopLimit    = ""
+	stopword     []string
 	lower        = false
 	porter       = false
 )
@@ -32,7 +33,19 @@ var inv = &cobra.Command{
 		var doc *document.Documents
 		tokenParser := []func(token string) string{}
 		if stopLimit != "" {
-			tokenParser = append(tokenParser, document.StopList)
+			dat, err := ioutil.ReadFile(stopLimit)
+			if err != nil {
+				panic(err)
+			}
+			stopword = strings.Split(string(dat), "\n")
+			tokenParser = append(tokenParser, func(token string) string {
+				for _, value := range stopword {
+					if token == value {
+						return ""
+					}
+				}
+				return token
+			})
 		}
 		if porter {
 			tokenParser = append(tokenParser, document.PorterStemmer)

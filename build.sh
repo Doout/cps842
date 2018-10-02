@@ -7,5 +7,10 @@ rm -rf ${build_path}
 mkdir -p ${build_path}
 cp -r $(ls | grep -v build) ${build_path}
 export GOPATH="${GOPATHt}"
-go build github.com/doout/cps842
+cd ${build_path}
+make build
+cd ${DIR}
+rm -rf output
+mkdir output
+cp -r "${build_path}/output" .
 rm -rf ${GOPATHt}
