@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var tokenParser []func(token string) string
@@ -29,9 +30,11 @@ var inv = &cobra.Command{
 	Short: "Generate inverted index from CACM collection",
 	Long:  `Take a collection of documents and generate its inverted index.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
 		data := loadFile(inputFile)
 		var doc *document.Documents
-		tokenParser := []func(token string) string{}
+		//Remove punctuation that we don't want.
+		tokenParser := []func(token string) string{document.RemovePunctuation, document.ToLower}
 		if stopLimit != "" {
 			dat, err := ioutil.ReadFile(stopLimit)
 			if err != nil {
@@ -50,23 +53,29 @@ var inv = &cobra.Command{
 		if porter {
 			tokenParser = append(tokenParser, document.PorterStemmer)
 		}
-		if lower {
-			tokenParser = append(tokenParser, document.ToLower)
-		}
 		if tokenParser != nil {
 			doc = document.BuildDocumentWithTokenParser(data, tokenParser...)
 		} else {
 			doc = document.BuildDocument(data)
 		}
-		_ = doc
+		end := time.Now()
+		fmt.Println(end.Sub(start), "to process file")
+		totalTime := end.Sub(start)
+		start = time.Now()
 		//save dictionary
-		fmt.Println(fmt.Sprintf("Saving files here %s", outputFolder))
+		//fmt.Println(fmt.Sprintf("Saving files here %s", outputFolder))
 		saveFile(doc.GetDictionarySort(), fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
-		saveFile(doc, fmt.Sprintf("%s/%s", outputFolder, "postings"))
+		saveFile(doc.GetPosting(), fmt.Sprintf("%s/%s", outputFolder, "postings"))
+		saveFile(doc.GetDocumentsData(), fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
+		end = time.Now()
+		fmt.Println(end.Sub(start), "to save files")
+		totalTime += end.Sub(start)
+		fmt.Println(totalTime, "to execute program")
 	},
 }
 
 func saveFile(data interface{}, fileName string) {
+
 	o, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		panic(err)
@@ -95,7 +104,7 @@ func init() {
 	inv.MarkFlagRequired("output-folder")
 	inv.Flags().StringVarP(&stopLimit, "stop-word", "s", "", "add stop word removal")
 	inv.Flags().BoolVarP(&porter, "porter", "p", false, "enable Porter's Stemming algorithm")
-	inv.Flags().BoolVarP(&lower, "lower-case", "l", false, "lower case each term")
+	//inv.Flags().BoolVarP(&lower, "lower-case", "l", false, "lower case each term")
 
 }
 

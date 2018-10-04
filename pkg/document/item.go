@@ -9,8 +9,9 @@ import (
 )
 
 type Item struct {
-	TotalFrequency *int64
-	DocumentInfo   frequencyMap
+	TotalFrequency    *int64
+	DocumentFrequency *int64 //df
+	DocumentInfo      frequencyMap
 }
 
 type DocumentInfo struct {
@@ -50,7 +51,8 @@ func (t frequencyMap) MarshalJSON() (text []byte, err error) {
 
 func NewItem() Item {
 	total := int64(0)
-	return Item{&total, make(map[int]*DocumentInfo)}
+	df := int64(0)
+	return Item{&total, &df, make(map[int]*DocumentInfo)}
 }
 
 func (item *Item) GetTotalFrequency() int64 {
@@ -66,4 +68,5 @@ func (item *Item) AddFrequency(documentId, frequency int, location []int) {
 	item.DocumentInfo[documentId].Frequency = frequency
 	item.DocumentInfo[documentId].Location = location
 	atomic.AddInt64(item.TotalFrequency, int64(frequency))
+	atomic.AddInt64(item.DocumentFrequency, int64(1))
 }

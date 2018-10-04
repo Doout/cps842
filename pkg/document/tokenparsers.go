@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+var punctuation = []string{"!", ".", "?", `"`, `'`}
+
+func RemovePunctuation(token string) string {
+	for _, value := range punctuation {
+		if value == token {
+			return ""
+		}
+	}
+	return token
+}
+
 func PorterStemmer(token string) string {
 	return port.StemString(token)
 }

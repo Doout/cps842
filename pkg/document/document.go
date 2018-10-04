@@ -22,6 +22,14 @@ type Documents struct {
 	Info          map[int]map[string]string
 }
 
+func (doc *Documents) GetDocumentsData() map[int]map[string]string {
+	return doc.Info
+}
+
+func (doc *Documents) GetPosting() map[string]Item {
+	return doc.TermFrequency
+}
+
 func (doc *Documents) GetDictionarySort() []string {
 	li := make([]string, len(doc.TermFrequency))
 	index := 0
@@ -151,7 +159,7 @@ OUTER:
 	return li, oc
 }
 
-func (d *Documents) GetFirstDocSum(word string) string {
+func (d *Documents) GetTermSum(word string) string {
 	word = strings.TrimSpace(word)
 	fmt.Println("Looking for ", word)
 	if item, ok := d.TermFrequency[word]; ok {
@@ -166,11 +174,19 @@ func (d *Documents) GetFirstDocSum(word string) string {
 			index += 1
 		}
 		sort.Ints(sv)
-		docId := sv[0]
-		l := item.DocumentInfo[docId].Location[0]
-		index, find := DecodeLocation(l, DocumentsItems...)
-
-		return getNextXToken(d.Info[docId][find], index, 10)
+		buffer := bytes.Buffer{}
+		for _, docId := range sv {
+			di := item.DocumentInfo[docId]
+			l := di.Location[0]
+			index, find := DecodeLocation(l, DocumentsItems...)
+			sum := getNextXToken(d.Info[docId][find], index, 10)
+			buffer.WriteString(fmt.Sprintf("Doc ID: %d\n", docId))
+			buffer.WriteString(fmt.Sprintf("Doc Title: %s\n", d.Info[docId]["T"]))
+			buffer.WriteString(fmt.Sprintf("Term frequency: %d\n", di.Frequency))
+			buffer.WriteString(sum)
+			buffer.WriteString("\n\n")
+		}
+		return buffer.String()
 	}
 	return ""
 }
