@@ -1,5 +1,7 @@
-To build this project please install Golang, then on mac/linux run build.sh
+To build this project please install Golang and dep, then on mac/linux run build.sh
 
+Golang: https://golang.org/doc/install\
+Dep: https://github.com/golang/dep#installation
 
 ###Running the program
 Please run the right version of the binary for the os.
