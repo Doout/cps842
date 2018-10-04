@@ -57,7 +57,7 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 		occurrences map[string][]int
 	}
 	tokensChan := make(chan tokensChanData)
-
+	//Create a goroutine per each doc and grab all the tokens.
 	for _, item := range b {
 		itemTemp := item
 		go func() {
@@ -74,14 +74,17 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 				}
 			}
 			tcd := tokensChanData{id, wordMap, info, wordIndexs}
+			//Send the data to tokensChan for it to be sync.
 			tokensChan <- tcd
 		}()
 	}
 	index := 0
 	max := len(b)
 	for index < max {
+		//Get the data from the chan, This will wait for data to be push in
 		wordMap := <-tokensChan
 		d.Info[wordMap.ID] = wordMap.Info
+		//For every word add them to the doc struct
 		for key, value := range wordMap.Tokens {
 			if v, ok := d.TermFrequency[key]; ok {
 				v.AddFrequency(wordMap.ID, value, wordMap.occurrences[key])
@@ -96,6 +99,7 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 	return &d
 }
 
+//Get the tokens from the string
 func getProseToken(data string) (*prose.Document, error) {
 	return prose.NewDocument(data,
 		prose.WithExtraction(false),
@@ -104,12 +108,14 @@ func getProseToken(data string) (*prose.Document, error) {
 		prose.WithTokenization(true))
 }
 
+//Return a list of token from a string and update the index to match the index.
 func GetToken(s map[string]string, items ...string) []prose.Token {
 	var tokens []prose.Token
 	tokensThreadChan := make(chan []prose.Token, len(items))
 	for i, item := range items {
 		tempItems := item
 		tempIndex := i
+		//Per each strings get the tokens
 		go func() {
 			doc, err := getProseToken(s[tempItems])
 			if err != nil {
@@ -117,14 +123,17 @@ func GetToken(s map[string]string, items ...string) []prose.Token {
 			}
 			baseOffset := 32 - uint(math.Log2(float64(len(items))))
 			tokens2 := make([]prose.Token, len(doc.Tokens()))
+			//Update the index to match the location in which this token can be found in
 			for index, v := range doc.Tokens() {
 				v.Index |= tempIndex << baseOffset
 				tokens2[index] = v
 			}
+			//Send the tokens to the main thread to be sync
 			tokensThreadChan <- tokens2
 		}()
 	}
 
+	//Sync the background thread this function spin up
 	for _ = range items {
 		tok := <-tokensThreadChan
 		tokens = append(tokens, tok...)
@@ -159,6 +168,7 @@ OUTER:
 	return li, oc
 }
 
+//
 func (d *Documents) GetTermSum(word string) string {
 	word = strings.TrimSpace(word)
 	fmt.Println("Looking for ", word)

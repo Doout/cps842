@@ -35,6 +35,7 @@ var inv = &cobra.Command{
 		var doc *document.Documents
 		//Remove punctuation that we don't want.
 		tokenParser := []func(token string) string{document.RemovePunctuation, document.ToLower}
+		//Add the stop limit token parse
 		if stopLimit != "" {
 			dat, err := ioutil.ReadFile(stopLimit)
 			if err != nil {
@@ -50,6 +51,7 @@ var inv = &cobra.Command{
 				return token
 			})
 		}
+		//Add the Porter Stemmer token parse
 		if porter {
 			tokenParser = append(tokenParser, document.PorterStemmer)
 		}
@@ -108,6 +110,7 @@ func init() {
 
 }
 
+//Load the files and the return is the a list of map which are the doc info
 func loadFile(f string) []map[string]string {
 	dat, err := ioutil.ReadFile(f)
 	if err != nil {

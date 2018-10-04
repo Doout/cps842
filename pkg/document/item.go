@@ -64,9 +64,8 @@ func (item *Item) GetFrequency(documentId int) int {
 }
 
 func (item *Item) AddFrequency(documentId, frequency int, location []int) {
-	item.DocumentInfo[documentId] = &DocumentInfo{Frequency: frequency}
-	item.DocumentInfo[documentId].Frequency = frequency
-	item.DocumentInfo[documentId].Location = location
+	item.DocumentInfo[documentId] = &DocumentInfo{Frequency: frequency, Location: location}
+	//update the value using atomic which is thread safe
 	atomic.AddInt64(item.TotalFrequency, int64(frequency))
 	atomic.AddInt64(item.DocumentFrequency, int64(1))
 }
