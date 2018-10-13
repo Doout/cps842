@@ -47,18 +47,18 @@ Program help, using the -h flag
 
 ```
 Take the posting file generate from invert and test it.
-   
-   Usage:
-     cps842 test [flags]
-   
-   Flags:
-     -h, --help             help for test
-     -p, --posting string   The location of Posting File(required)
+
+Usage:
+  cps842 test [flags]
+
+Flags:
+  -f, --folder string   Folder location where posting/doc files are (required)
+  -h, --help            help for test
 
 ```
 
 Given that the posting file is in the folder `data`. Run the following command to execute the program
 
 ```
- ./cps842 test -p ./data/postings
+ ./cps842 test -f ./data
 ```
