@@ -1,60 +1,42 @@
 package document
 
 import (
-	"bytes"
-	"fmt"
-	"github.com/bclicn/color"
 	"github.com/doout/prose"
 	"log"
-	"math"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 )
 
 var vaildToken = regexp.MustCompile(`(?m)^(\d+|\w+)$`)
 
-var DocumentsItems = []string{"T", "W"}
+var DocumentsItems = []string{"T", "W", "N"}
 
-type Documents struct {
-	TermFrequency map[string]Item
+type TermFrequencys struct {
+	TermFrequency map[string]map[string]Item
 	Info          map[int]map[string]string
 }
 
-func (doc *Documents) GetDocumentsData() map[int]map[string]string {
+func (doc *TermFrequencys) GetDocumentsData() map[int]map[string]string {
 	return doc.Info
 }
 
-func (doc *Documents) GetPosting() map[string]Item {
-	return doc.TermFrequency
-}
-
-func (doc *Documents) GetDictionarySort() []string {
-	li := make([]string, len(doc.TermFrequency))
-	index := 0
-	for key, value := range doc.TermFrequency {
-		li[index] = fmt.Sprintf("%s, df:%d", key, len(value.DocumentInfo))
-		index++
-	}
-	sort.Strings(li)
-	return li
-}
-
-func BuildDocument(b []map[string]string) *Documents {
+func BuildDocument(b []map[string]string) *TermFrequencys {
 	return BuildDocumentWithTokenParser(b)
 }
-func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(token string) string) *Documents {
-	d := Documents{
-		TermFrequency: make(map[string]Item),
+
+func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(token string) string) *TermFrequencys {
+	d := TermFrequencys{
+		TermFrequency: make(map[string]map[string]Item),
 		Info:          make(map[int]map[string]string),
 	}
 
 	type tokensChanData struct {
-		ID          int
-		Tokens      map[string]int
+		ID int
+		// itemName -> word -> count
+		Tokens      map[string]map[string]int
 		Info        map[string]string
-		occurrences map[string][]int
+		occurrences map[string]map[string][]int
 	}
 	tokensChan := make(chan tokensChanData)
 	//Create a goroutine per each doc and grab all the tokens.
@@ -67,6 +49,7 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 			}
 			t := GetToken(itemTemp, DocumentsItems...)
 			wordMap, wordIndexs := countWord(t, tokenParsers...)
+
 			info := make(map[string]string, len(DocumentsItems))
 			for _, value := range DocumentsItems {
 				if v, ok := itemTemp[value]; ok {
@@ -86,12 +69,17 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 		d.Info[wordMap.ID] = wordMap.Info
 		//For every word add them to the doc struct
 		for key, value := range wordMap.Tokens {
-			if v, ok := d.TermFrequency[key]; ok {
-				v.AddFrequency(wordMap.ID, value, wordMap.occurrences[key])
-			} else {
-				v := NewItem()
-				v.AddFrequency(wordMap.ID, value, wordMap.occurrences[key])
-				d.TermFrequency[key] = v
+			if _, ok := d.TermFrequency[key]; !ok {
+				d.TermFrequency[key] = make(map[string]Item)
+			}
+			for word, token := range value {
+				if v, ok := d.TermFrequency[key][word]; ok {
+					v.AddFrequency(wordMap.ID, token)
+				} else {
+					v = NewItem()
+					v.AddFrequency(wordMap.ID, token)
+					d.TermFrequency[key][word] = v
+				}
 			}
 		}
 		index++
@@ -109,124 +97,73 @@ func getProseToken(data string) (*prose.Document, error) {
 }
 
 //Return a list of token from a string and update the index to match the index.
-func GetToken(s map[string]string, items ...string) []prose.Token {
-	var tokens []prose.Token
-	tokensThreadChan := make(chan []prose.Token, len(items))
-	for i, item := range items {
+func GetToken(s map[string]string, items ...string) map[string][]prose.Token {
+	returnTokens := make(map[string][]prose.Token, len(items))
+
+	type Tokens struct {
+		Tokens   []prose.Token
+		ItemName string
+	}
+	tokensThreadChan := make(chan Tokens, len(items))
+	for _, item := range items {
 		tempItems := item
-		tempIndex := i
+		//tempIndex := i
 		//Per each strings get the tokens
 		go func() {
 			doc, err := getProseToken(s[tempItems])
 			if err != nil {
 				log.Fatal(err)
 			}
-			baseOffset := 32 - uint(math.Log2(float64(len(items))))
-			tokens2 := make([]prose.Token, len(doc.Tokens()))
-			//Update the index to match the location in which this token can be found in
-			for index, v := range doc.Tokens() {
-				v.Index |= tempIndex << baseOffset
-				tokens2[index] = v
-			}
+			//baseOffset := 32 - uint(math.Log2(float64(len(items))))
+			//tokens2 := make([]prose.Token, len(doc.Tokens()))
+			////Update the index to match the location in which this token can be found in
+			//for index, v := range doc.Tokens() {
+			//	v.Index |= tempIndex << baseOffset
+			//	tokens2[index] = v
+			//}
 			//Send the tokens to the main thread to be sync
-			tokensThreadChan <- tokens2
+			tokensThreadChan <- Tokens{doc.Tokens(), tempItems}
 		}()
 	}
 
 	//Sync the background thread this function spin up
 	for _ = range items {
 		tok := <-tokensThreadChan
-		tokens = append(tokens, tok...)
+		returnTokens[tok.ItemName] = tok.Tokens
 	}
-	return tokens
+	return returnTokens
 }
 
 /*
 Return the lists of words with the index of the word in the documnt
 This function does not find the index of the word itself but use token.Index
 */
-func countWord(tokens []prose.Token, tokenParsers ...func(token string) string) (map[string]int, map[string][]int) {
-	li := make(map[string]int)
-	oc := make(map[string][]int)
-OUTER:
-	for _, token := range tokens {
-		word := token.Text
-		for _, fn := range tokenParsers {
-			if strings.Compare(word, "") == 0 {
-				continue OUTER
+func countWord(tokens map[string][]prose.Token, tokenParsers ...func(token string) string) (map[string]map[string]int, map[string]map[string][]int) {
+	//itemName -> word -> count
+	li := make(map[string]map[string]int)
+	//itemName -> word -> location
+	oc := make(map[string]map[string][]int)
+
+	for key, value := range tokens {
+		li[key] = make(map[string]int)
+		oc[key] = make(map[string][]int)
+	OUTER:
+		for _, token := range value {
+			word := token.Text
+			for _, fn := range tokenParsers {
+				if strings.Compare(word, "") == 0 {
+					continue OUTER
+				}
+				word = fn(word)
 			}
-			word = fn(word)
-		}
-		if _, ok := li[word]; ok {
-			li[word] += 1
-			oc[word] = append(oc[word], token.Index)
-		} else {
-			li[word] = 1
-			oc[word] = []int{token.Index}
+			if _, ok := li[key][word]; ok {
+				li[key][word] += 1
+				oc[key][word] = append(oc[key][word], token.Index)
+			} else {
+				li[key][word] = 1
+				oc[key][word] = []int{token.Index}
+			}
 		}
 	}
 	return li, oc
-}
-
-//
-func (d *Documents) GetTermSum(word string) string {
-	word = strings.TrimSpace(word)
-	fmt.Println("Looking for ", word)
-	if item, ok := d.TermFrequency[word]; ok {
-		di := item.DocumentInfo
-		if len(di) <= 0 {
-			return ""
-		}
-		sv := make([]int, len(di))
-		index := 0
-		for i := range di {
-			sv[index] = i
-			index += 1
-		}
-		sort.Ints(sv)
-		buffer := bytes.Buffer{}
-		for _, docId := range sv {
-			di := item.DocumentInfo[docId]
-			l := di.Location[0]
-			index, find := DecodeLocation(l, DocumentsItems...)
-			sum := getNextXToken(d.Info[docId][find], index, 10)
-			buffer.WriteString(fmt.Sprintf("Doc ID: %d\n", docId))
-			buffer.WriteString(fmt.Sprintf("Doc Title: %s\n", d.Info[docId]["T"]))
-			buffer.WriteString(fmt.Sprintf("Term frequency: %d\n", di.Frequency))
-			buffer.WriteString(sum)
-			buffer.WriteString("\n\n")
-		}
-		return buffer.String()
-	}
-	return ""
-}
-
-func getNextXToken(sent string, startIndex int, numberOfNextItem int) string {
-	output := bytes.Buffer{}
-	if len(sent) < startIndex {
-		return ""
-	}
-	scan := sent[startIndex:]
-	scan = strings.Replace(scan, "\n", " ", -1)
-	tokens := strings.Split(scan, " ")
-	col := tokens[0]
-	for index, tok := range tokens {
-		if index > numberOfNextItem {
-			break
-		}
-		if col == tok {
-			output.WriteString(color.Blue(tok))
-		} else {
-			output.WriteString(tok)
-		}
-		output.WriteString(" ")
-	}
-	return strings.TrimSpace(output.String())
-}
-
-func DecodeLocation(location int, items ...string) (int, string) {
-	baseOffset := 32 - uint(math.Log2(float64(len(items))))
-	base := location >> baseOffset
-	index := location & ((1 << baseOffset) - 1)
-	return index, items[base]
 }

@@ -32,7 +32,7 @@ var inv = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		data := loadFile(inputFile)
-		var doc *document.Documents
+		var doc *document.TermFrequencys
 		//Remove punctuation that we don't want.
 		tokenParser := []func(token string) string{document.RemovePunctuation, document.ToLower}
 		//Add the stop limit token parse
@@ -62,17 +62,51 @@ var inv = &cobra.Command{
 		}
 		end := time.Now()
 		fmt.Println(end.Sub(start), "to process file")
-		totalTime := end.Sub(start)
+		_ = doc
+		//totalTime := end.Sub(start)
+		//start = time.Now()
+		////save dictionary
+		////fmt.Println(fmt.Sprintf("Saving files here %s", outputFolder))
+		//saveFile(doc.GetDictionarySort(), fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
+		//saveFile(doc.GetPosting(), fmt.Sprintf("%s/%s", outputFolder, "postings"))
+		//saveFile(doc.GetDocumentsData(), fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
+		//end = time.Now()
+		//fmt.Println(end.Sub(start), "to save files")
+		//totalTime += end.Sub(start)
+		//fmt.Println(totalTime, "to execute program")
+
+		model := document.MakeModel()
+		model.StopWords = stopword
+		model.TokenParser = tokenParser
+		model.PorterStemmer = porter
+		model.AddDocuments(doc.TermFrequency)
+		model.Info = doc.Info
+
 		start = time.Now()
-		//save dictionary
-		//fmt.Println(fmt.Sprintf("Saving files here %s", outputFolder))
-		saveFile(doc.GetDictionarySort(), fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
-		saveFile(doc.GetPosting(), fmt.Sprintf("%s/%s", outputFolder, "postings"))
-		saveFile(doc.GetDocumentsData(), fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
+		saveFile(model.Dictionary, fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
+		saveFile(model.Info, fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
+		saveFile(model.DictionaryInvert, fmt.Sprintf("%s/%s", outputFolder, "dictionaryInvert"))
+		saveFile(model.Documents, fmt.Sprintf("%s/%s", outputFolder, "posting"))
+		saveFile(model.ModelOptions, fmt.Sprintf("%s/%s", outputFolder, "modelOption"))
 		end = time.Now()
 		fmt.Println(end.Sub(start), "to save files")
-		totalTime += end.Sub(start)
-		fmt.Println(totalTime, "to execute program")
+		//		a := make(map[string]string)
+		//		a["W"] = `Information retrieval articles by Gerard Salton or others about clustering,
+		//bibliographic coupling, use of citations or co-citations, the vector
+		//space model, Boolean search methods using inverted files, feedback, etc.`
+		//		a["N"] = "Hal Perkins, Comp Sci, Cornell"
+		//
+		//		start = time.Now()
+		//		a1 := model.Search(a)
+		//		fmt.Println(a1[0])
+		//		end = time.Now()
+		//		fmt.Println(end.Sub(start), "to search")
+		//		start = time.Now()
+		//		m2 := document.LoadModel(outputFolder)
+		//		a2 := m2.Search(a)
+		//		fmt.Println(a2[0])
+		//		end = time.Now()
+		//		fmt.Println(end.Sub(start), "to load and search")
 	},
 }
 
@@ -148,6 +182,12 @@ func loadFile(f string) []map[string]string {
 			buffer.Write([]byte(line))
 			buffer.WriteRune('\n')
 		}
+	}
+	if len(lastToken) > 0 {
+		d[lastToken] = strings.TrimSpace(buffer.String())
+	}
+	if d != nil {
+		data = append(data, d)
 	}
 	return data
 }

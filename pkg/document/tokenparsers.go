@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var punctuation = []string{"!", ".", "?", `"`, `'`}
+var punctuation = []string{"!", ".", "?", `"`, `'`, ","}
 
 //We don't want all the punctuation to be in use, remove the one we don't need.
 func RemovePunctuation(token string) string {
