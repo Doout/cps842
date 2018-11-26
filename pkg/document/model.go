@@ -1,11 +1,11 @@
 package document
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/doout/cps842/pkg/utils"
 	"github.com/doout/prose"
 	"hash/fnv"
-	"io/ioutil"
+
 	"math"
 	"sort"
 )
@@ -15,7 +15,7 @@ import (
 //Overhead will need to be taking into account when testing it
 
 type Term struct {
-	Index     uint32 // The index of the term in the dictionary
+	Index     uint32 // The hash of the word.
 	Frequency int64  //term f
 }
 
@@ -54,11 +54,11 @@ type Model struct {
 func LoadModel(folder string) *Model {
 	m := MakeModel()
 	tokenParser := []func(token string) string{RemovePunctuation, ToLower}
-	loadJsonFromFile(&m.ModelOptions, fmt.Sprintf("%s/%s", folder, "modelOption"))
-	loadJsonFromFile(&m.Dictionary, fmt.Sprintf("%s/%s", folder, "dictionary"))
-	loadJsonFromFile(&m.Info, fmt.Sprintf("%s/%s", folder, "docinfo"))
-	loadJsonFromFile(&m.DictionaryInvert, fmt.Sprintf("%s/%s", folder, "dictionaryInvert"))
-	loadJsonFromFile(&m.Documents, fmt.Sprintf("%s/%s", folder, "posting"))
+	utils.LoadJsonFromFile(&m.ModelOptions, fmt.Sprintf("%s/%s", folder, "modelOption"))
+	utils.LoadJsonFromFile(&m.Dictionary, fmt.Sprintf("%s/%s", folder, "dictionary"))
+	utils.LoadJsonFromFile(&m.Info, fmt.Sprintf("%s/%s", folder, "docinfo"))
+	utils.LoadJsonFromFile(&m.DictionaryInvert, fmt.Sprintf("%s/%s", folder, "dictionaryInvert"))
+	utils.LoadJsonFromFile(&m.Documents, fmt.Sprintf("%s/%s", folder, "posting"))
 
 	if len(m.StopWords) > 0 {
 		tokenParser = append(tokenParser, func(token string) string {
@@ -144,18 +144,37 @@ func (m *Model) BuildQuery(query map[string]string, tokenParsers ...func(token s
 }
 
 func (m *Model) Search(input map[string]string) []Result {
-	q, _ := m.BuildQuery(input, RemovePunctuation, ToLower)
+	q, _ := m.BuildQuery(input, m.TokenParser...)
 	q2 := Document(*q)
 	r := []Result{}
 	//Only search on W for now.
 	for index, doc := range m.Documents {
-		r = append(r, Result{doc.CosSim(&q2, "W"), uint64(index)})
+		res := Result{0, uint64(index)}
+		for key := range q2.Layout {
+			cosSim := doc.CosSim(&q2, key)
+			res.CosSim += cosSim
+		}
+		if res.CosSim > 0 {
+			r = append(r, res)
+		}
 	}
 	sort.Slice(r, func(i, j int) bool {
 		return r[i].CosSim > r[j].CosSim
 	})
-	//Return the list of doc that have the highest cos-sim
-	return r
+	index := 0
+	maxIndex := len(r)
+	for index < maxIndex {
+		if r[index].CosSim <= 0 {
+			break
+		}
+		index++
+	}
+
+	if index == 0 {
+		return []Result{}
+	}
+
+	return r[:index]
 }
 
 func (m *Model) AddDocuments(tfs map[string]map[string]Item) {
@@ -183,25 +202,8 @@ func (m *Model) AddDocuments(tfs map[string]map[string]Item) {
 	m.TotalNumberOfDocuments = uint64(len(m.Documents))
 }
 
-// What articles exist which deal with TSS (Time Sharing System), an operating system for IBM computers?
-//func (m *Model) PrintDocTerm(d Document) {
-//	for _, t := range d.Terms {
-//		fmt.Println(m.DictionaryInvert[t.Index])
-//	}
-//}
-
 func hash(s string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(s))
 	return h.Sum32()
-}
-
-func loadJsonFromFile(t interface{}, file string) {
-	dat, err := ioutil.ReadFile(file)
-	if err != nil {
-		panic(err)
-	}
-	if err := json.Unmarshal(dat, t); err != nil {
-		panic(err)
-	}
 }

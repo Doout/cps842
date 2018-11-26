@@ -23,7 +23,6 @@ Usage:
 Flags:
   -f, --file string            The location of CACM collection (required)
   -h, --help                   help for invert
-  -l, --lower-case             lower case each term
   -o, --output-folder string   The location to output the final files (required)
   -p, --porter                 enable Porter's Stemming algorithm
   -s, --stop-word string       add stop word removal
@@ -41,24 +40,54 @@ For Porter's Stemming algorithm and to lower case every word add either `-p` or 
 
 Ex of all the flags, `./cps842 invert -f cacm.all -o "./data" -s common_words -l -p`
 
-####Run test
+####Run search
 
 Program help, using the -h flag
 
 ```
-Take the posting file generate from invert and test it.
+./cps842 search -h
+Search for the best documents match using cos-sim and output the best match
 
 Usage:
-  cps842 test [flags]
+  cps842 search [flags]
 
 Flags:
   -f, --folder string   Folder location where posting/doc files are (required)
-  -h, --help            help for test
+  -h, --help            help for search
+  -i, --interact-mode   Interact with the user
+  -s, --search string   What to search for
 
 ```
 
 Given that the posting file is in the folder `data`. Run the following command to execute the program
 
 ```
- ./cps842 test -f ./data
+ ./cps842 search -f ./data -s "<term/sent>"
+```
+Or to use the interact mode
+```
+ ./cps842 search -f ./data -i
+```
+
+####Run eval
+Program help, using the -h flag
+```
+./cps842 eval -h
+Evaluate the performance of the IR system, output will be the average MAP and R-Precision values over all queries
+
+Usage:
+  cps842 eval [flags]
+
+Flags:
+  -f, --folder string   Folder location where the posting/doc files are (required)
+  -h, --help            help for eval
+  -r, --qrels string    The qrels.text file
+  -q, --query string    The query file
+
+```
+
+Given that the input folder is`data`, qrels `./input/qrels.text` and query is `./input/query.text` . Run the following command to execute the program
+
+```
+./cps842 eval -f data -r ./input/qrels.text -q ./input/query.text
 ```

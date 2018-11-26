@@ -10,7 +10,7 @@ import (
 
 var vaildToken = regexp.MustCompile(`(?m)^(\d+|\w+)$`)
 
-var DocumentsItems = []string{"T", "W", "N"}
+var DocumentsItems = []string{"T", "W", "N", "A"}
 
 type TermFrequencys struct {
 	TermFrequency map[string]map[string]Item

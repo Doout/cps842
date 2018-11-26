@@ -10,6 +10,14 @@
   revision = "108f2023dc84f1f9e64f246fa3997993971b2706"
 
 [[projects]]
+  branch = "master"
+  digest = "1:c9ecca9e239473a2fa388b30fc372e09b70ac2d72ccf5cdcc0ba29e44fb1e3d7"
+  name = "github.com/dcadenas/pagerank"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "af922e3ceea87e23531577552dcda4d518350d55"
+
+[[projects]]
   digest = "1:e47d51dab652d26c3fba6f8cba403f922d02757a82abdc77e90df7948daf296e"
   name = "github.com/deckarep/golang-set"
   packages = ["."]
@@ -227,6 +235,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/bclicn/color",
+    "github.com/dcadenas/pagerank",
     "github.com/doout/prose",
     "github.com/reiver/go-porterstemmer",
     "github.com/spf13/cobra",
