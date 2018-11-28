@@ -41,7 +41,3 @@
 [[constraint]]
   name = "github.com/doout/prose"
   branch = "v2"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/dcadenas/pagerank"

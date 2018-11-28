@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 // inv represents the playbook command
 var search = &cobra.Command{
 	Use:   "search",
@@ -35,7 +34,7 @@ var search = &cobra.Command{
 			end := time.Now()
 			fmt.Println("Doc ID\tCos-sim")
 			for _, r := range res {
-				fmt.Printf("%d\t%f\n", r.Document, r.CosSim)
+				fmt.Printf("%d\t%f\n", r.Document, r.Value)
 			}
 			fmt.Println(end.Sub(start), "to find the best match")
 		} else {
@@ -87,7 +86,8 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(search)
+	// Don't load this sub command, for the project
+	//rootCmd.AddCommand(search)
 	search.Flags().StringVarP(&folder, "folder", "f", "", "Folder location where posting/doc files are (required)")
 	search.MarkFlagRequired("folder")
 

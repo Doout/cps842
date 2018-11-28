@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/doout/cps842/pkg/document"
+	"github.com/doout/cps842/pkg/pagerank"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -63,17 +65,35 @@ var inv = &cobra.Command{
 		end := time.Now()
 		fmt.Println(end.Sub(start), "to process file")
 		_ = doc
-		//totalTime := end.Sub(start)
-		//start = time.Now()
-		////save dictionary
-		////fmt.Println(fmt.Sprintf("Saving files here %s", outputFolder))
-		//saveFile(doc.GetDictionarySort(), fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
-		//saveFile(doc.GetPosting(), fmt.Sprintf("%s/%s", outputFolder, "postings"))
-		//saveFile(doc.GetDocumentsData(), fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
-		//end = time.Now()
-		//fmt.Println(end.Sub(start), "to save files")
-		//totalTime += end.Sub(start)
-		//fmt.Println(totalTime, "to execute program")
+
+		type doclink struct {
+			from uint64
+			to   uint64
+		}
+
+		doclinks := []doclink{}
+
+		for _, item := range data {
+			links_string := item["X"]
+			links := strings.Split(links_string, "\n")
+			for _, link := range links {
+				data := strings.Split(link, "\t")
+				if data[1] == "5" {
+					// X -> Y, X have a link to Y
+					from, _ := strconv.Atoi(data[0])
+					to, _ := strconv.Atoi(data[2])
+					doclinks = append(doclinks, doclink{from: uint64(from), to: uint64(to)})
+				}
+			}
+		}
+
+		graph := pagerank.New()
+
+		for _, item := range doclinks {
+			graph.Link64(item.from, item.to)
+		}
+
+		scores := graph.Rank(0.85, 1e-100)
 
 		model := document.MakeModel()
 		model.StopWords = stopword
@@ -84,29 +104,15 @@ var inv = &cobra.Command{
 
 		start = time.Now()
 		saveFile(model.Dictionary, fmt.Sprintf("%s/%s", outputFolder, "dictionary"))
+		saveFile(graph, fmt.Sprintf("%s/%s", outputFolder, "pagerank_graph"))
+		saveFile(scores, fmt.Sprintf("%s/%s", outputFolder, "pagerank_scores"))
 		saveFile(model.Info, fmt.Sprintf("%s/%s", outputFolder, "docinfo"))
 		saveFile(model.DictionaryInvert, fmt.Sprintf("%s/%s", outputFolder, "dictionaryInvert"))
 		saveFile(model.Documents, fmt.Sprintf("%s/%s", outputFolder, "posting"))
 		saveFile(model.ModelOptions, fmt.Sprintf("%s/%s", outputFolder, "modelOption"))
 		end = time.Now()
 		fmt.Println(end.Sub(start), "to save files")
-		//		a := make(map[string]string)
-		//		a["W"] = `Information retrieval articles by Gerard Salton or others about clustering,
-		//bibliographic coupling, use of citations or co-citations, the vector
-		//space model, Boolean search methods using inverted files, feedback, etc.`
-		//		a["N"] = "Hal Perkins, Comp Sci, Cornell"
-		//
-		//		start = time.Now()
-		//		a1 := model.Search(a)
-		//		fmt.Println(a1[0])
-		//		end = time.Now()
-		//		fmt.Println(end.Sub(start), "to search")
-		//		start = time.Now()
-		//		m2 := document.LoadModel(outputFolder)
-		//		a2 := m2.Search(a)
-		//		fmt.Println(a2[0])
-		//		end = time.Now()
-		//		fmt.Println(end.Sub(start), "to load and search")
+
 	},
 }
 

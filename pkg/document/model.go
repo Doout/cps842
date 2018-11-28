@@ -1,7 +1,9 @@
 package document
 
 import (
+	"errors"
 	"fmt"
+	"github.com/doout/cps842/pkg/pagerank"
 	"github.com/doout/cps842/pkg/utils"
 	"github.com/doout/prose"
 	"hash/fnv"
@@ -22,7 +24,7 @@ type Term struct {
 type DocumentSlice []Document
 
 type Result struct {
-	CosSim   float64
+	Value    float64
 	Document uint64
 }
 
@@ -143,38 +145,60 @@ func (m *Model) BuildQuery(query map[string]string, tokenParsers ...func(token s
 	return &returnQuery, nil
 }
 
-func (m *Model) Search(input map[string]string) []Result {
+func (m *Model) SearchWithPageRank(input map[string]string, simCos, rank float64, pr pagerank.PageRankResult) ([]Result, error) {
+	checkPageRank := rank != 0
+	if simCos+rank != 1 {
+		return nil, errors.New("SimCos and rank are not equal to 1")
+	}
+	if checkPageRank {
+		if pr.KeyToIndex == nil || pr.R == nil {
+			return nil, errors.New("Page Rank Results have nil KeyToIndex or PageRank ")
+		}
+	}
 	q, _ := m.BuildQuery(input, m.TokenParser...)
 	q2 := Document(*q)
 	r := []Result{}
+
 	//Only search on W for now.
 	for index, doc := range m.Documents {
 		res := Result{0, uint64(index)}
 		for key := range q2.Layout {
 			cosSim := doc.CosSim(&q2, key)
-			res.CosSim += cosSim
+			res.Value += cosSim
 		}
-		if res.CosSim > 0 {
+
+		if checkPageRank {
+			pageRankValue := pr.GetPageRank(index)
+			res.Value = res.Value*simCos + pageRankValue*rank
+
+		}
+		if res.Value > 0 {
 			r = append(r, res)
 		}
 	}
 	sort.Slice(r, func(i, j int) bool {
-		return r[i].CosSim > r[j].CosSim
+		return r[i].Value > r[j].Value
 	})
 	index := 0
 	maxIndex := len(r)
 	for index < maxIndex {
-		if r[index].CosSim <= 0 {
+		if r[index].Value <= 0 {
 			break
 		}
 		index++
 	}
 
 	if index == 0 {
-		return []Result{}
+		//nothing was match
+		return []Result{}, nil
 	}
 
-	return r[:index]
+	return r[:index], nil
+}
+
+func (m *Model) Search(input map[string]string) []Result {
+	r, _ := m.SearchWithPageRank(input, 1.0, 0.0, pagerank.PageRankResult{})
+	return r
 }
 
 func (m *Model) AddDocuments(tfs map[string]map[string]Item) {

@@ -11,6 +11,7 @@ import (
 var vaildToken = regexp.MustCompile(`(?m)^(\d+|\w+)$`)
 
 var DocumentsItems = []string{"T", "W", "N", "A"}
+var DocumentLink = "X"
 
 type TermFrequencys struct {
 	TermFrequency map[string]map[string]Item
@@ -47,9 +48,9 @@ func BuildDocumentWithTokenParser(b []map[string]string, tokenParsers ...func(to
 			if err != nil {
 				panic(err)
 			}
+
 			t := GetToken(itemTemp, DocumentsItems...)
 			wordMap, wordIndexs := countWord(t, tokenParsers...)
-
 			info := make(map[string]string, len(DocumentsItems))
 			for _, value := range DocumentsItems {
 				if v, ok := itemTemp[value]; ok {

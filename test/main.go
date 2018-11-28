@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "github.com/dcadenas/pagerank"
+	"fmt"
 	g "github.com/doout/cps842/pkg/pagerank"
 )
 
@@ -34,11 +34,10 @@ func main() {
 	graph.Link(13, E)
 	graph.Link(14, E)
 
-	graph.Link(1, 2)
-
 	//17
 
 	a := graph.Rank(0.85, 0.00001)
+	fmt.Println(a.GetPageRank(10))
 	//Set range from 0 to 1.
 	a.Norm()
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/doout/cps842/pkg/document"
+	"github.com/doout/cps842/pkg/pagerank"
 	"github.com/doout/cps842/pkg/utils"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -24,6 +25,15 @@ var eval = &cobra.Command{
 		timer.Stop()
 		fmt.Println(timer.Duration(), "to load the model")
 		timer.Start()
+
+		//Load in the pageRank
+
+		pageRankGraph := pagerank.New()
+		utils.LoadJsonFromFile(&pageRankGraph, fmt.Sprintf("%s/%s", folder, "pagerank_graph"))
+		prs := pageRankGraph.Rank(0.85, 1e-10)
+		prs.Norm()
+		timer.Stop()
+		fmt.Println(timer.Duration(), "to load/compute page rank")
 		//qrels.text output
 		// index doc ID
 		//01 1410  0 0
@@ -49,7 +59,7 @@ var eval = &cobra.Command{
 			if qId == 0 {
 				break
 			}
-			matchs[qId] = model.Search(q)
+			matchs[qId], _ = model.SearchWithPageRank(q, 0.7, 0.3, prs)
 		}
 
 		keys := []int{}
