@@ -36,8 +36,8 @@ func main() {
 
 	//17
 
-	a := graph.Rank(0.85, 0.00001)
-	fmt.Println(a.GetPageRank(10))
+	a := graph.Rank(0.85, 1e-10)
+	fmt.Println(a.GetPageRank(B))
 	//Set range from 0 to 1.
 	a.Norm()
 

@@ -59,7 +59,7 @@ var eval = &cobra.Command{
 			if qId == 0 {
 				break
 			}
-			matchs[qId], _ = model.SearchWithPageRank(q, 0.7, 0.3, prs)
+			matchs[qId], _ = model.SearchWithPageRank(q, w1, w2, prs)
 		}
 
 		keys := []int{}
@@ -140,6 +140,8 @@ func LoadQrels(f string) map[int][]int {
 var (
 	qrels string
 	query string
+	w1    float64
+	w2    float64
 )
 
 func init() {
@@ -149,4 +151,6 @@ func init() {
 
 	eval.Flags().StringVarP(&qrels, "qrels", "r", "", "The qrels.text file")
 	eval.Flags().StringVarP(&query, "query", "q", "", "The query file")
+	eval.Flags().Float64VarP(&w1, "cosSimW", "c", 1, "The cosine similary score weight")
+	eval.Flags().Float64VarP(&w2, "pageRankW", "p", 0, "The PageRank score weight")
 }

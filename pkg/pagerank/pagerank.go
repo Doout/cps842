@@ -7,7 +7,7 @@ import (
 
 //page rank alg can be found here https://en.wikipedia.org/wiki/PageRank
 type pageRank struct {
-	NumberOfLinks        uint64
+	NumberOfNodes        uint64
 	InBoundLink          [][]uint64
 	NumberOfOutBoundLink []int
 	KeyToIndex           map[uint64]uint64
@@ -21,7 +21,7 @@ type PageRankResult struct {
 
 func New() pageRank {
 	return pageRank{
-		NumberOfLinks: uint64(0),
+		NumberOfNodes: uint64(0),
 		KeyToIndex:    make(map[uint64]uint64),
 		IndexToKey:    make(map[uint64]uint64),
 	}
@@ -29,10 +29,10 @@ func New() pageRank {
 
 func (rank *pageRank) Rank(dampingFactor, tolerance float64) PageRankResult {
 	//Just do one round.
-	r := make([]float64, rank.NumberOfLinks)
+	r := make([]float64, rank.NumberOfNodes)
 	index := uint64(0)
-	for index < rank.NumberOfLinks {
-		r[index] = float64(1) / float64(rank.NumberOfLinks)
+	for index < rank.NumberOfNodes {
+		r[index] = float64(1) / float64(rank.NumberOfNodes)
 		index++
 	}
 	danglingNodes := rank.getDanglingNodes()
@@ -42,9 +42,11 @@ func (rank *pageRank) Rank(dampingFactor, tolerance float64) PageRankResult {
 		c = calculateChange(r, r2)
 		r = r2
 	}
+
 	// Create the target map
 	ret := PageRankResult{KeyToIndex: make(map[uint64]uint64),
 		R: r}
+
 	for key, value := range rank.KeyToIndex {
 		ret.KeyToIndex[key] = value
 	}
@@ -86,14 +88,14 @@ func (rank *pageRank) step(dampingFactor float64, P []float64, danglingNodes []u
 	linkToAll := danglingNodesSum / float64(len(P))
 
 	P2 := make([]float64, len(P))
-	for index < rank.NumberOfLinks {
+	for index < rank.NumberOfNodes {
 		links := rank.InBoundLink[index]
 		sum := float64(0)
 		for _, link := range links {
 			sum += P[link] / float64(rank.NumberOfOutBoundLink[link])
 		}
 
-		newP := (1-dampingFactor)/float64(rank.NumberOfLinks) + (dampingFactor * (sum + linkToAll))
+		newP := (1-dampingFactor)/float64(rank.NumberOfNodes) + (dampingFactor * (sum + linkToAll))
 		P2[index] = newP
 		vsum += newP
 		index++
@@ -108,7 +110,7 @@ func (rank *pageRank) step(dampingFactor float64, P []float64, danglingNodes []u
 
 //
 func (pr *pageRank) getDanglingNodes() []uint64 {
-	danglingNodes := make([]uint64, 0, pr.NumberOfLinks)
+	danglingNodes := make([]uint64, 0, pr.NumberOfNodes)
 	for i, outBoundLinks := range pr.NumberOfOutBoundLink {
 		if outBoundLinks == 0 {
 			danglingNodes = append(danglingNodes, uint64(i))
@@ -117,16 +119,16 @@ func (pr *pageRank) getDanglingNodes() []uint64 {
 	return danglingNodes
 }
 
-func (rank *pageRank) getIndex(index uint64) uint64 {
+func (rank *pageRank) getIndex(docID uint64) uint64 {
 	var returnIndex uint64
 	var ok bool
-	if returnIndex, ok = rank.KeyToIndex[index]; !ok {
-		returnIndex = rank.NumberOfLinks
-		rank.KeyToIndex[index] = returnIndex
-		rank.IndexToKey[returnIndex] = index
+	if returnIndex, ok = rank.KeyToIndex[docID]; !ok {
+		returnIndex = rank.NumberOfNodes
+		rank.KeyToIndex[docID] = returnIndex
+		rank.IndexToKey[returnIndex] = docID
 		rank.InBoundLink = append(rank.InBoundLink, []uint64{})
 		rank.NumberOfOutBoundLink = append(rank.NumberOfOutBoundLink, 0)
-		rank.NumberOfLinks++
+		rank.NumberOfNodes++
 	}
 	return returnIndex
 }

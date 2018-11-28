@@ -93,7 +93,7 @@ var inv = &cobra.Command{
 			graph.Link64(item.from, item.to)
 		}
 
-		scores := graph.Rank(0.85, 1e-100)
+		scores := graph.Rank(0.85, 1e-10)
 
 		model := document.MakeModel()
 		model.StopWords = stopword
