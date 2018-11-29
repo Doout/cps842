@@ -83,6 +83,8 @@ Flags:
   -h, --help            help for eval
   -r, --qrels string    The qrels.text file
   -q, --query string    The query file
+  -c, --cosSimW float   The cosine similarity score weight (w1)
+  -p, --pageRankW float The PageRank score weight (w2)
 
 ```
 
